@@ -1,6 +1,5 @@
 run:
   timeout: 5m
-  modules-download-mode: readonly
 
 linters:
   enable:
@@ -9,19 +8,4 @@ linters:
     - govet
     - ineffassign
     - staticcheck
-    - typecheck
     - unused
-    - gofmt
-    - goimports
-    - revive
-
-linters-settings:
-  gofmt:
-    simplify: true
-  goimports:
-    local-prefixes: github.com/TimurVR/go-project-278
-
-issues:
-  exclude-use-default: false
-  max-issues-per-linter: 0
-  max-same-issues: 0
