@@ -12,6 +12,7 @@ type PostRepository interface {
 	DeleteLinkByID(ctx context.Context,id int) (error)
 	CreateLink(ctx context.Context,link dto.LinkResponce) (error)
 	UpdateLink(ctx context.Context,link dto.LinkResponce) (error)
+	ListLinksLimited(ctx context.Context, start, limit int) ([]*dto.LinkResponce, error)
 }
 type Repository struct {
 	db *sql.DB
@@ -109,4 +110,37 @@ func (r *Repository) UpdateLink(ctx context.Context,link dto.LinkResponce) (erro
 		return fmt.Errorf("update link: %w", err)
 	}
 	return  nil
+}
+func (r *Repository) ListLinksLimited(ctx context.Context, start, limit int) ([]*dto.LinkResponce, error) {
+    query := `
+        SELECT id, original_url, short_name, short_url 
+        FROM links 
+        ORDER BY id
+        LIMIT $1 OFFSET $2
+    `
+    rows, err := r.db.QueryContext(ctx, query, limit, start)
+    if err != nil {
+        return nil, fmt.Errorf("list links: %w", err)
+    }
+    defer rows.Close()
+    
+    var links []*dto.LinkResponce
+    for rows.Next() {
+        var link dto.LinkResponce
+        err := rows.Scan(
+            &link.Id,
+            &link.Original_url,
+            &link.Short_name,
+            &link.Short_url,
+        )
+        if err != nil {
+            return nil, fmt.Errorf("scan link: %w", err)
+        }
+        links = append(links, &link)
+    }
+    
+    if err = rows.Err(); err != nil {
+        return nil, fmt.Errorf("rows error: %w", err)
+    }
+    return links, nil
 }

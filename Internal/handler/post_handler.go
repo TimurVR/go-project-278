@@ -120,10 +120,36 @@ func (a *App) CreateLinks(rw *gin.Context) {
 }
 
 func (a *App) GetLinks(rw *gin.Context) {
-	responce, err := a.Repo.ListLinks(a.Ctx)
+	rangeParam := rw.Query("range")
+	if rangeParam == "" {
+           responce, err := a.Repo.ListLinks(a.Ctx)
+		   if err != nil {
+				rw.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			rw.JSON(http.StatusOK, responce)
+    }
+	rangeParam = strings.Trim(rangeParam, "[]")
+    parts := strings.Split(rangeParam, ",")
+    if len(parts) != 2 {
+            rw.JSON(400, gin.H{"error": "range must be in format [start,end]"})
+            return
+    }
+    start, err1 := strconv.Atoi(strings.TrimSpace(parts[0]))
+    end, err2 := strconv.Atoi(strings.TrimSpace(parts[1]))
+    if err1 != nil || err2 != nil {
+            rw.JSON(400, gin.H{"error": "range values must be integers"})
+            return
+     }
+    if start < 0 || end < 0 || start > end {
+            rw.JSON(400, gin.H{"error": "invalid range values"})
+            return
+    }
+	responce, err := a.Repo.ListLinksLimited(a.Ctx,start,end)
 	if err != nil {
-		rw.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+				rw.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
 	}
 	rw.JSON(http.StatusOK, responce)
+
 }

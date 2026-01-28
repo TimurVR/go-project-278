@@ -39,7 +39,13 @@ func (m *MockRepository) ListLinks(ctx context.Context) ([]*dto.LinkResponce, er
 	}
 	return args.Get(0).([]*dto.LinkResponce), args.Error(1)
 }
-
+func (m *MockRepository) ListLinksLimited(ctx context.Context, start, end int) ([]*dto.LinkResponce, error) {
+    args := m.Called(ctx, start, end)
+    if args.Get(0) == nil {
+        return nil, args.Error(1)
+    }
+    return args.Get(0).([]*dto.LinkResponce), args.Error(1)
+}
 func (m *MockRepository) UpdateLink(ctx context.Context, link dto.LinkResponce) error {
 	args := m.Called(ctx, link)
 	return args.Error(0)
@@ -50,7 +56,6 @@ func (m *MockRepository) DeleteLinkByID(ctx context.Context, Id int) error {
 	return args.Error(0)
 }
 
-// Вспомогательная функция для создания роутера
 func setupTestRouter(app *handler.App) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
@@ -504,6 +509,87 @@ func TestGetLinks_DatabaseError(t *testing.T) {
 	
 	mockRepo.AssertExpectations(t)
 }
+// Тест на успешное получение ссылок с диапазоном
+func TestGetLinksLimited_Success(t *testing.T) {
+    mockRepo := &MockRepository{}
+    expectedLinks := []*dto.LinkResponce{
+        {
+            Id:           1,
+            Original_url: "https://example1.com",
+            Short_name:   "test1",
+            Short_url:    "abc123",
+        },
+        {
+            Id:           2,
+            Original_url: "https://example2.com",
+            Short_name:   "test2",
+            Short_url:    "def456",
+        },
+    }
+    mockRepo.On("ListLinksLimited", mock.Anything, 0, 10).
+        Return(expectedLinks, nil)
+    app := &handler.App{
+        Ctx:  context.Background(),
+        Repo: mockRepo,
+    }
+    w := httptest.NewRecorder()
+    c, _ := gin.CreateTestContext(w)
+    c.Request = httptest.NewRequest("GET", "/api/links?range=[0,10]", nil)
+    app.GetLinks(c)
+    assert.Equal(t, http.StatusOK, w.Code)
+    var links []*dto.LinkResponce
+    err := json.Unmarshal(w.Body.Bytes(), &links)
+    assert.NoError(t, err)
+    assert.Len(t, links, 2)
+    assert.Equal(t, "https://example1.com", links[0].Original_url)
+    assert.Equal(t, "test1", links[0].Short_name)
+    assert.Equal(t, "https://example2.com", links[1].Original_url)
+    assert.Equal(t, "test2", links[1].Short_name)
+    mockRepo.AssertCalled(t, "ListLinksLimited", mock.Anything, 0, 10)
+    mockRepo.AssertExpectations(t)
+}
+// Тест на пустой лист
+func TestGetLinksLimited_EmptyList(t *testing.T) {
+    mockRepo := &MockRepository{}  
+    mockRepo.On("ListLinksLimited", mock.Anything, 5, 15).
+        Return([]*dto.LinkResponce{}, nil)
+    app := &handler.App{
+        Ctx:  context.Background(),
+        Repo: mockRepo,
+    }
+    w := httptest.NewRecorder()
+    c, _ := gin.CreateTestContext(w)
+    c.Request = httptest.NewRequest("GET", "/api/links?range=[5,15]", nil)
+    app.GetLinks(c)
+    assert.Equal(t, http.StatusOK, w.Code)
+    var links []*dto.LinkResponce
+    err := json.Unmarshal(w.Body.Bytes(), &links)
+    assert.NoError(t, err)
+    assert.Empty(t, links)
+    mockRepo.AssertCalled(t, "ListLinksLimited", mock.Anything, 5, 15) 
+    mockRepo.AssertExpectations(t)
+}
+// Тест на ошибку
+func TestGetLinksLimited_DatabaseError(t *testing.T) {
+    mockRepo := &MockRepository{}
+    mockRepo.On("ListLinksLimited", mock.Anything, 0, 10).
+        Return(nil, errors.New("database error"))
+    app := &handler.App{
+        Ctx:  context.Background(),
+        Repo: mockRepo,
+    }
+    w := httptest.NewRecorder()
+    c, _ := gin.CreateTestContext(w)
+    c.Request = httptest.NewRequest("GET", "/api/links?range=[0,10]", nil)
+    app.GetLinks(c) 
+    assert.Equal(t, http.StatusInternalServerError, w.Code)
+    var response map[string]interface{}
+    err := json.Unmarshal(w.Body.Bytes(), &response)
+    assert.NoError(t, err)
+    assert.Contains(t, response, "error")
+    mockRepo.AssertCalled(t, "ListLinksLimited", mock.Anything, 0, 10) 
+    mockRepo.AssertExpectations(t)
+}
 
 // Тест на обработку несуществующего маршрута
 func TestRoutes_NoRoute(t *testing.T) {
@@ -512,19 +598,14 @@ func TestRoutes_NoRoute(t *testing.T) {
 		Ctx:  context.Background(),
 		Repo: mockRepo,
 	}
-
 	router := setupTestRouter(app)
-	
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/nonexistent", nil)
 	router.ServeHTTP(w, req)
-	
 	assert.Equal(t, http.StatusNotFound, w.Code)
-	
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
 	assert.Equal(t, "404 Not Found", response["error"])
 	assert.Equal(t, "Запрашиваемый ресурс не найден", response["message"])
 	assert.Equal(t, "/nonexistent", response["path"])
