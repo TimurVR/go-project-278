@@ -1,6 +1,6 @@
-FROM backend
+# 1) Builder stage
 FROM golang:1.25-alpine AS backend-builder
-RUN apk add --no-cache git
+RUN apk add --no-cache git bash  # Добавлен bash
 WORKDIR /build/code
 
 COPY go.mod go.sum ./
@@ -14,13 +14,15 @@ COPY . .
 RUN --mount=type=cache,target=/root/.cache/go-build \
   CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /build/app .
 
-# 3) Runtime
+# 2) Runtime stage
 FROM alpine:3.22
+
+
+RUN apk add --no-cache bash postgresql-client  # Добавлен bash и postgresql-client для healthcheck
 
 WORKDIR /app
 
 COPY --from=backend-builder /build/app /app/bin/app
-
 COPY --from=backend-builder build/code/db/migrations /app/db/migrations
 COPY --from=backend-builder /go/bin/goose /usr/local/bin/goose
 
