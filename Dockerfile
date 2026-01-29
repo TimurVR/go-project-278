@@ -4,8 +4,7 @@ WORKDIR /build/frontend
 
 COPY package*.json ./
 
-RUN --mount=type=cache,target=/root/.npm \
-  npm ci --prefer-offline --no-audit  # УБРАТЬ второй "npm ci"
+
 
 # 2) Build backend
 FROM golang:1.25-alpine AS backend-builder
@@ -35,7 +34,7 @@ COPY --from=frontend-builder \
   /build/frontend/node_modules/@hexlet/project-url-shortener-frontend/dist \
   /app/public
 
-COPY --from=backend-builder /build/code/db/migrations /app/db/migrations
+COPY --from=backend-builder build/code/db/migrations /app/db/migrations
 COPY --from=backend-builder /go/bin/goose /usr/local/bin/goose
 
 COPY bin/run.sh /app/bin/run.sh
