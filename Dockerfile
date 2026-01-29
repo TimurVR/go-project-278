@@ -4,7 +4,7 @@ WORKDIR /build/frontend
 
 COPY package*.json ./
 
-
+RUN npm ci npm ci --prefer-offline --no-audit
 
 # 2) Build backend
 FROM golang:1.25-alpine AS backend-builder
@@ -31,7 +31,7 @@ WORKDIR /app
 
 COPY --from=backend-builder /build/app /app/bin/app
 COPY --from=frontend-builder \
-  /frontend/node_modules/@hexlet/project-url-shortener-frontend/dist \
+  /build/frontend/node_modules/@hexlet/project-url-shortener-frontend/dist \
   /app/public
 
 COPY --from=backend-builder build/code/db/migrations /app/db/migrations
