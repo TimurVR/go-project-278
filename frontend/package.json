@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "frontend:copy": "xcopy frontend\\node_modules\\@hexlet\\project-url-shortener-frontend\\dist\\* public\\ /E /I /Y",
+    "frontend": "npx serve public -p 5173",
+    "backend": "go run main.go",
+    "dev": "npm run frontend:copy && concurrently -n \"BACKEND,FRONTEND\" -c \"blue,green\" \"npm run backend\" \"npm run frontend\""
+  }
+}
