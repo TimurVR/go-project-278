@@ -1,0 +1,11 @@
+# render.yaml
+services:
+  - type: web
+    name: your-app
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: PORT
+        value: 80
+    healthCheckPath: /ping

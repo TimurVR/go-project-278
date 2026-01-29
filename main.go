@@ -6,6 +6,7 @@ import (
 	"go-project-278/Internal/app"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -14,25 +15,43 @@ import (
 )
 
 func main() {
-	database, err := sql.Open("postgres", "postgresql://go_project_user:5crLwQD0QYVCjkppXQ5Dtjn2IPWvoBz5@dpg-d5svobu3jp1c738v4g40-a.oregon-postgres.render.com:5432/go_project_db?sslmode=require")
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		databaseURL = "postgresql://go_project_user:5crLwQD0QYVCjkppX5Dtjn2IPWvoBz5@dpg-d5svobu3jp1c738v4g40-a.oregon-postgres.render.com:5432/go_project_db?sslmode=require"
+	}
+	database, err := sql.Open("postgres", databaseURL)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer database.Close()
+	defer database.Close()	
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := database.PingContext(ctx); err != nil {
 		log.Fatalf("Не удалось подключиться к БД: %v", err)
 	}
+	if os.Getenv("GIN_MODE") == "release" {
+		gin.SetMode(gin.ReleaseMode)
+	}
 	r := gin.Default()
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "http://127.0.0.1:5173"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
-	}))
+	if os.Getenv("ENVIRONMENT") == "development" {
+		r.Use(cors.New(cors.Config{
+			AllowOrigins:     []string{"http://localhost:5173", "http://127.0.0.1:5173"},
+			AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
+			AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
+			ExposeHeaders:    []string{"Content-Length"},
+			AllowCredentials: true,
+			MaxAge:           12 * time.Hour,
+		}))
+	} else {
+		r.Use(cors.New(cors.Config{
+			AllowOrigins:     []string{"http://localhost"},
+			AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
+			AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
+			ExposeHeaders:    []string{"Content-Length"},
+			AllowCredentials: true,
+			MaxAge:           12 * time.Hour,
+		}))
+	}
 	r.Use(gin.Recovery())
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
@@ -42,9 +61,15 @@ func main() {
 	appCtx := context.Background()
 	a := app.NewApp(appCtx, database)
 	a.Routes(r)
-	port := ":3000"
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "3000"
+	}	
+	if os.Getenv("IN_DOCKER") == "true" {
+		port = "8080"
+	}
 	log.Printf("Сервер запущен на порту %s", port)
-	if err := r.Run(port); err != nil {
+	if err := r.Run(":" + port); err != nil {
 		log.Fatalf("Failed to run server: %v", err)
 	}
 }
