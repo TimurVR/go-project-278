@@ -71,7 +71,7 @@ func (a *App) HandleLink(rw *gin.Context) {
 		}
 		var responce dto.LinkResponce
 		if (request.Short_name==""){
-			responce.Short_name=GenerateUniqueString() 
+			request.Short_name=GenerateUniqueString() 
 		}
 		responce.Id=id
 		responce.Original_url=request.Original_url

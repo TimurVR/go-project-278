@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"fmt"
 )
 
 type MockRepository struct {
@@ -222,41 +223,34 @@ func TestHandleLink_GET_NotFound(t *testing.T) {
 
 // Тест на успешное обновление ссылки
 func TestHandleLink_PUT_Success(t *testing.T) {
-	mockRepo := &MockRepository{}
-	
-	mockRepo.On("UpdateLink", mock.Anything, mock.AnythingOfType("dto.LinkResponce")).
-		Return(nil)
+    mockRepo := &MockRepository{}
+    mockRepo.On("UpdateLink", mock.Anything, mock.AnythingOfType("dto.LinkResponce")).
+        Return(nil)
 
-	app := &handler.App{
-		Ctx:  context.Background(),
-		Repo: mockRepo,
-	}
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	
-	c.Params = gin.Params{gin.Param{Key: "Id", Value: "1"}}
-	
-	jsonData := `{
-		"original_url": "https://updated.com",
-		"short_name": "updated-name"
-	}`
-	
-	c.Request = httptest.NewRequest("PUT", "/api/links/1", bytes.NewBufferString(jsonData))
-	c.Request.Header.Set("Content-Type", "application/json")
-	
-	app.HandleLink(c)
-	
-	assert.Equal(t, http.StatusOK, w.Code)
-	
-	var response dto.LinkResponce
-	err := json.Unmarshal(w.Body.Bytes(), &response)
-	assert.NoError(t, err)
-	assert.Equal(t, "https://updated.com", response.Original_url)
-	assert.Equal(t, "updated-name", response.Short_name)
-	assert.NotEmpty(t, response.Short_url)
-	
-	mockRepo.AssertExpectations(t)
+    app := &handler.App{
+        Ctx:  context.Background(),
+        Repo: mockRepo,
+    }
+    w := httptest.NewRecorder()
+    c, _ := gin.CreateTestContext(w)
+    c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
+    jsonData := `{
+        "original_url": "https://updated.com",
+        "short_name": "updated-name"
+    }`
+    c.Request = httptest.NewRequest("PUT", "/api/links/1", bytes.NewBufferString(jsonData))
+    c.Request.Header.Set("Content-Type", "application/json")
+    app.HandleLink(c)
+    fmt.Printf("Response body: %s\n", w.Body.String())
+    fmt.Printf("Response code: %d\n", w.Code)
+    assert.Equal(t, http.StatusOK, w.Code)
+    var response dto.LinkResponce
+    err := json.Unmarshal(w.Body.Bytes(), &response)
+    assert.NoError(t, err)
+    assert.Equal(t, "https://updated.com", response.Original_url)
+    assert.Equal(t, "updated-name", response.Short_name)
+    assert.NotEmpty(t, response.Short_url)
+    mockRepo.AssertExpectations(t)
 }
 // Тест на ошибку валидации JSON при обновлении
 func TestHandleLink_PUT_BadRequest_InvalIdJSON(t *testing.T) {
@@ -269,7 +263,7 @@ func TestHandleLink_PUT_BadRequest_InvalIdJSON(t *testing.T) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	
-	c.Params = gin.Params{gin.Param{Key: "Id", Value: "1"}}
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
 	
 	jsonData := `{invalId json`
 	
