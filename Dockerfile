@@ -31,7 +31,7 @@ WORKDIR /app
 
 COPY --from=backend-builder /build/app /app/bin/app
 COPY --from=frontend-builder \
-  /build/frontend/node_modules/@hexlet/project-url-shortener-frontend/dist \
+  /frontend/node_modules/@hexlet/project-url-shortener-frontend/dist \
   /app/public
 
 COPY --from=backend-builder build/code/db/migrations /app/db/migrations
