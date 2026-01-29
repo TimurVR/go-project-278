@@ -31,9 +31,7 @@ RUN apk add --no-cache ca-certificates tzdata bash caddy
 WORKDIR /app
 
 COPY --from=backend-builder /build/app /app/bin/app
-COPY --from=frontend-builder \
-  node_modules/@hexlet/project-url-shortener-frontend/dist \
-  public
+
 
 COPY --from=backend-builder build/code/db/migrations /app/db/migrations
 COPY --from=backend-builder /go/bin/goose /usr/local/bin/goose
