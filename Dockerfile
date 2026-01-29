@@ -1,18 +1,9 @@
-# 1) Build frontend
-FROM node:24-alpine AS frontend-builder
-WORKDIR /build/frontend
+# 1) Install frontend package
+FROM node:24-alpine AS frontend-installer
+WORKDIR /build
 
-# Копируем файлы зависимостей фронтенда
-COPY package*.json ./
-
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --prefer-offline --no-audit
-
-# Копируем исходники фронтенда (предполагается, что они в текущей директории)
-COPY . .
-
-# Запускаем сборку фронтенда (замените на вашу команду сборки)
-RUN npm run build
+# Устанавливаем только пакет фронтенда
+RUN npm install @hexlet/project-url-shortener-frontend --no-audit --no-fund --prefer-offline
 
 # 2) Build backend
 FROM golang:1.25-alpine AS backend-builder
@@ -39,8 +30,8 @@ WORKDIR /app
 
 COPY --from=backend-builder /build/app /app/bin/app
 
-# Копируем собранные статические файлы фронтенда
-COPY --from=frontend-builder /build/frontend/dist /app/public
+# Копируем готовые статические файлы из установленного npm пакета
+COPY --from=frontend-installer /build/node_modules/@hexlet/project-url-shortener-frontend/dist /app/public
 
 COPY --from=backend-builder /build/code/db/migrations /app/db/migrations
 COPY --from=backend-builder /go/bin/goose /usr/local/bin/goose
@@ -48,7 +39,7 @@ COPY --from=backend-builder /go/bin/goose /usr/local/bin/goose
 COPY bin/run.sh /app/bin/run.sh
 RUN chmod +x /app/bin/run.sh
 
-COPY Caddyfile /etc/caddy/Caddyfile
+COPY Caddyfile /etc/Caddyfile
 
 EXPOSE 80
 
