@@ -4,7 +4,8 @@ WORKDIR /build/frontend
 
 COPY package*.json ./
 
-RUN npm ci --prefer-offline --no-audit
+RUN --mount=type=cache,target=/root/.npm \
+  npm ci npm ci --prefer-offline --no-audit
 
 # 2) Build backend
 FROM golang:1.25-alpine AS backend-builder
