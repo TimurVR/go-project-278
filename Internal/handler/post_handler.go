@@ -128,6 +128,7 @@ func (a *App) GetLinks(rw *gin.Context) {
 				return
 			}
 			rw.JSON(http.StatusOK, responce)
+			return
     }
 	rangeParam = strings.Trim(rangeParam, "[]")
     parts := strings.Split(rangeParam, ",")
