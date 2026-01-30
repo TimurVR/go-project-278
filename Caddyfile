@@ -4,19 +4,16 @@
 
 :80 {
     root * /app/public
-    
-    # 1. Сначала пытаемся отдать реальный файл (js, css, иконки)
     file_server
 
-    # 2. Если это запрос к API — сразу в Go
+    # API запросы — на бэкенд
     handle /api/* {
         reverse_proxy localhost:8080
     }
 
-    # 3. Для всего остального: если файла нет, отдаем index.html (для роутинга фронта)
-    # Если и index.html нет в папке, тогда пробуем Go
+    # Всё остальное — отдаем index.html
     handle {
         try_files {path} /index.html
-        reverse_proxy localhost:8080
+        file_server
     }
 }

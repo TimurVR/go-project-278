@@ -30,7 +30,7 @@ WORKDIR /app
 
 COPY --from=backend-builder /build/app /app/bin/app
 
-# Копируем готовые статические файлы из установленного npm пакета
+# Убрали лишнюю папку /frontend/
 COPY --from=frontend-installer /build/node_modules/@hexlet/project-url-shortener-frontend/dist /app/public
 
 COPY --from=backend-builder /build/code/db/migrations /app/db/migrations
