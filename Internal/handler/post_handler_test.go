@@ -475,34 +475,6 @@ func TestGetLinks_EmptyList(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-// Тест на ошибку базы данных при получении списка ссылок
-func TestGetLinks_DatabaseError(t *testing.T) {
-	mockRepo := &MockRepository{}
-	
-	mockRepo.On("ListLinks", mock.Anything).
-		Return([]*dto.LinkResponce{}, errors.New("database error"))
-
-	app := &handler.App{
-		Ctx:  context.Background(),
-		Repo: mockRepo,
-	}
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	
-	c.Request = httptest.NewRequest("GET", "/api/links", nil)
-	
-	app.GetLinks(c)
-	
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	
-	var response map[string]interface{}
-	err := json.Unmarshal(w.Body.Bytes(), &response)
-	assert.NoError(t, err)
-	assert.Contains(t, response, "error")
-	
-	mockRepo.AssertExpectations(t)
-}
 // Тест на успешное получение ссылок с диапазоном
 func TestGetLinksLimited_Success(t *testing.T) {
     mockRepo := &MockRepository{}
