@@ -58,10 +58,7 @@ func main() {
 	appCtx := context.Background()
 	a := app.NewApp(appCtx, database)
 	a.Routes(r)
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "80"
-	}
+	port := "8080"
 	log.Printf("Сервер запущен на порту %s", port)
 	if err := r.Run(":" + port); err != nil {
 		log.Fatalf("Failed to run server: %v", err)
