@@ -1,17 +1,20 @@
-:80
-
-# Статика из /app/public
-root * /app/public
-
-# Отдаём /assets/* как есть
-handle /assets/* {
-    file_server
+{
+    admin {
+        # Разрешаем ваш хост для админ-панели
+        allowed_origins go-project-278-6-auob.onrender.com
+    }
 }
 
-# Отдаём корень как index.html
-handle / {
-    file_server
-}
+:80 {
+    root * /app/public
+    
+    handle /assets/* {
+        file_server
+    }
 
-# Всё остальное — в приложение на 8080
-reverse_proxy localhost:8080
+    handle / {
+        file_server
+    }
+
+    reverse_proxy localhost:8080
+}
