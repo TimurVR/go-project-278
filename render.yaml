@@ -1,11 +1,15 @@
-# render.yaml
 services:
   - type: web
-    name: your-app
+    name: go-project-278-api
     env: docker
+    region: oregon
     plan: free
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: Dockerfile
     envVars:
       - key: PORT
-        value: 80
+        value: 8080
+      - key: GIN_MODE
+        value: release
     healthCheckPath: /ping
+    healthCheckTimeout: 30
+    autoDeploy: true
