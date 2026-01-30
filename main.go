@@ -17,7 +17,7 @@ import (
 func main() {
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
-		databaseURL = "postgresql://go_project_user:5crLwQD0QYVCjkppXQ5Dtjn2IPWvoBz5@dpg-d5svobu3jp1c738v4g40-a/go_project_db"
+		databaseURL = "postgresql://go_project_user:Fj2SbLdlar3a4l48bXHObp5r6ewZEzpO@dpg-d5u8jbh4tr6s739dbca0-a/go_project_db_h0do"
 	}
 	database, err := sql.Open("postgres", databaseURL)
 	if err != nil {
