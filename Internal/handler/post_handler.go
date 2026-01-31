@@ -104,7 +104,7 @@ func GenerateShortCode(url string) string {
 }
 
 func (a *App) Routes(r *gin.Engine) {
-	r.Use(JSONValidationMiddleware())
+	//r.Use(JSONValidationMiddleware())
 	r.GET("/r/:code", a.Redirect)
 	r.POST("/api/links", a.CreateLinks)
 	r.GET("/api/links", a.GetLinks)
