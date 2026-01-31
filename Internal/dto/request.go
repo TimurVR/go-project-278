@@ -12,7 +12,6 @@ type Visit struct {
     LinkID    int       `json:"link_id" db:"link_id"`
     IP        string    `json:"ip" db:"ip"`
     UserAgent string    `json:"user_agent" db:"user_agent"`
-    Referer   string    `json:"referer" db:"referer"`
     Status    int       `json:"status" db:"status"`
     CreatedAt time.Time `json:"created_at" db:"created_at"`
 }

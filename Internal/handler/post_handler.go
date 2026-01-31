@@ -135,7 +135,6 @@ func (a *App) Redirect(c *gin.Context) {
 		LinkID:    link.Id,
 		IP:        c.ClientIP(),
 		UserAgent: c.Request.UserAgent(),
-		Referer:   c.Request.Referer(),
 		Status:    http.StatusFound,
 		CreatedAt: time.Now(),
 	}

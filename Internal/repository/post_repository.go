@@ -167,7 +167,7 @@ func (r *Repository) RecordVisit(ctx context.Context, v dto.Visit) error {
 		INSERT INTO link_visits (link_id, ip, user_agent, referer, status, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6);
 	`
-	_, err := r.db.ExecContext(ctx, query, v.LinkID, v.IP, v.UserAgent, v.Referer, v.Status, v.CreatedAt)
+	_, err := r.db.ExecContext(ctx, query, v.LinkID, v.IP, v.UserAgent,v.Status, v.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("record visit: %w", err)
 	}
@@ -185,7 +185,7 @@ func (r *Repository) ListVisits(ctx context.Context) ([]*dto.Visit, error) {
 	var visits []*dto.Visit
 	for rows.Next() {
 		var v dto.Visit
-		if err := rows.Scan(&v.Id, &v.LinkID, &v.IP, &v.UserAgent, &v.Referer, &v.Status, &v.CreatedAt); err != nil {
+		if err := rows.Scan(&v.Id, &v.LinkID, &v.IP, &v.UserAgent, &v.Status, &v.CreatedAt); err != nil {
 			return nil, err
 		}
 		visits = append(visits, &v)
@@ -209,7 +209,7 @@ func (r *Repository) ListVisitsLimited(ctx context.Context, start, limit int) ([
 	var visits []*dto.Visit
 	for rows.Next() {
 		var v dto.Visit
-		if err := rows.Scan(&v.Id, &v.LinkID, &v.IP, &v.UserAgent, &v.Referer, &v.Status, &v.CreatedAt); err != nil {
+		if err := rows.Scan(&v.Id, &v.LinkID, &v.IP, &v.UserAgent,&v.Status, &v.CreatedAt); err != nil {
 			return nil, err
 		}
 		visits = append(visits, &v)

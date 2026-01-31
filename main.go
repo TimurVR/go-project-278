@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"go-project-278/Internal/app"
+	"go-project-278/Internal/handler"
 	"log"
 	"net/http"
 	"os"
@@ -43,6 +44,7 @@ func main() {
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+	r.Use(handler.JSONValidationMiddleware())
 	r.Use(gin.Recovery())
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
