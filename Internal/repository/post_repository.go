@@ -8,11 +8,16 @@ import (
 )
 type PostRepository interface {
 	ListLinks(ctx context.Context) ([]*dto.LinkResponce, error)
-	GetLinkByID(ctx context.Context,id int) (*dto.LinkResponce, error)
-	DeleteLinkByID(ctx context.Context,id int) (error)
-	CreateLink(ctx context.Context,link dto.LinkResponce) (error)
-	UpdateLink(ctx context.Context,link dto.LinkResponce) (error)
+	GetLinkByID(ctx context.Context, id int) (*dto.LinkResponce, error)
+	GetLinkByShortName(ctx context.Context, shortName string) (*dto.LinkResponce, error) 
+	DeleteLinkByID(ctx context.Context, id int) error
+	CreateLink(ctx context.Context, link dto.LinkResponce) error
+	UpdateLink(ctx context.Context, link dto.LinkResponce) error
 	ListLinksLimited(ctx context.Context, start, limit int) ([]*dto.LinkResponce, error)
+	RecordVisit(ctx context.Context, visit dto.Visit) error 
+	ListVisits(ctx context.Context) ([]*dto.Visit, error) 
+	ListVisitsLimited(ctx context.Context, start, limit int) ([]*dto.Visit, error) 
+	CheckShortNameExists(ctx context.Context, shortName string) (bool, error)
 }
 type Repository struct {
 	db *sql.DB
@@ -143,4 +148,81 @@ func (r *Repository) ListLinksLimited(ctx context.Context, start, limit int) ([]
         return nil, fmt.Errorf("rows error: %w", err)
     }
     return links, nil
+}
+
+func (r *Repository) GetLinkByShortName(ctx context.Context, shortName string) (*dto.LinkResponce, error) {
+	query := `SELECT id, original_url, short_name, short_url FROM links WHERE short_name = $1;`
+	var link dto.LinkResponce
+	err := r.db.QueryRowContext(ctx, query, shortName).Scan(
+		&link.Id, &link.Original_url, &link.Short_name, &link.Short_url,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get link by short name: %w", err)
+	}
+	return &link, nil
+}
+
+func (r *Repository) RecordVisit(ctx context.Context, v dto.Visit) error {
+	query := `
+		INSERT INTO link_visits (link_id, ip, user_agent, referer, status, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6);
+	`
+	_, err := r.db.ExecContext(ctx, query, v.LinkID, v.IP, v.UserAgent, v.Referer, v.Status, v.CreatedAt)
+	if err != nil {
+		return fmt.Errorf("record visit: %w", err)
+	}
+	return nil
+}
+
+func (r *Repository) ListVisits(ctx context.Context) ([]*dto.Visit, error) {
+	query := `SELECT id, link_id, ip, user_agent, referer, status, created_at FROM link_visits ORDER BY created_at DESC;`
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var visits []*dto.Visit
+	for rows.Next() {
+		var v dto.Visit
+		if err := rows.Scan(&v.Id, &v.LinkID, &v.IP, &v.UserAgent, &v.Referer, &v.Status, &v.CreatedAt); err != nil {
+			return nil, err
+		}
+		visits = append(visits, &v)
+	}
+	return visits, nil
+}
+
+func (r *Repository) ListVisitsLimited(ctx context.Context, start, limit int) ([]*dto.Visit, error) {
+	query := `
+		SELECT id, link_id, ip, user_agent, referer, status, created_at 
+		FROM link_visits 
+		ORDER BY created_at DESC 
+		LIMIT $1 OFFSET $2;
+	`
+	rows, err := r.db.QueryContext(ctx, query, limit, start)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var visits []*dto.Visit
+	for rows.Next() {
+		var v dto.Visit
+		if err := rows.Scan(&v.Id, &v.LinkID, &v.IP, &v.UserAgent, &v.Referer, &v.Status, &v.CreatedAt); err != nil {
+			return nil, err
+		}
+		visits = append(visits, &v)
+	}
+	return visits, nil
+}
+
+func (r *Repository) CheckShortNameExists(ctx context.Context, shortName string) (bool, error) {
+    query := `SELECT EXISTS(SELECT 1 FROM links WHERE short_name = $1);`
+    var exists bool
+    err := r.db.QueryRowContext(ctx, query, shortName).Scan(&exists)
+    if err != nil {
+        return false, fmt.Errorf("check short name exists: %w", err)
+    }
+    return exists, nil
 }
