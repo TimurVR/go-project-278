@@ -26,11 +26,6 @@ type App struct {
 	Repo repository.PostRepository
 }
 
-var validate *validator.Validate
-
-func init() {
-	validate = validator.New()
-}
 
 type ValidationErrorResponse struct {
 	Errors map[string]string `json:"errors"`
@@ -92,7 +87,6 @@ func JSONValidationMiddleware() gin.HandlerFunc {
 				c.Abort()
 				return
 			}
-			c.Request.Body = c.Request.Body
 		}
 		c.Next()
 	}
