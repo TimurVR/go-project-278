@@ -134,7 +134,11 @@ func (a *App) Redirect(c *gin.Context) {
 		Status:    http.StatusFound,
 		CreatedAt: time.Now(),
 	}
-	_ = a.Repo.RecordVisit(a.Ctx, visit)
+	err = a.Repo.RecordVisit(a.Ctx, visit)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": "Link not found"})
+		return
+	}
 	c.Redirect(http.StatusFound, link.Original_url)
 }
 
