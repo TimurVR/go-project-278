@@ -8,3 +8,9 @@ type LinkResponce struct{
 	Short_name 		string	`json:"short_name"`
 	Short_url 		string	`json:"short_url"`
 }
+
+type LinkResponce1 struct{
+	Original_url 	string	`json:"original_url"`
+	Short_name 		string	`json:"short_name"`
+	Short_url 		string	`json:"short_url"`
+}

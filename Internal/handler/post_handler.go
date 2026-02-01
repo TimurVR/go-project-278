@@ -2,7 +2,7 @@ package handler
 
 import (
 	"context"
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -26,7 +26,6 @@ type App struct {
 	Repo repository.PostRepository
 }
 
-
 type ValidationErrorResponse struct {
 	Errors map[string]string `json:"errors"`
 }
@@ -42,7 +41,7 @@ func isValidURL(urlStr string) bool {
 
 func isValidShortName(shortName string) bool {
 	if shortName == "" {
-		return true  
+		return true
 	}
 	if len(shortName) < 3 || len(shortName) > 32 {
 		return false
@@ -97,14 +96,13 @@ func GenerateUniqueString() string {
 }
 
 func GenerateShortCode(url string) string {
-	hash := md5.Sum([]byte(url))
+	hash := sha256.Sum256([]byte(url + time.Now().String()))
 	encoded := base64.URLEncoding.EncodeToString(hash[:])
-	shortCode := encoded[:6]
-	return strings.TrimRight(shortCode, "=")
+	return encoded[:8]
 }
 
 func (a *App) Routes(r *gin.Engine) {
-	//r.Use(JSONValidationMiddleware())
+	r.Use(JSONValidationMiddleware())
 	r.GET("/r/:code", a.Redirect)
 	r.POST("/api/links", a.CreateLinks)
 	r.GET("/api/links", a.GetLinks)
@@ -158,7 +156,7 @@ func (a *App) HandleLink(rw *gin.Context) {
 			return
 		}
 		rw.JSON(http.StatusOK, link)
-		
+
 	case "PUT":
 
 		id, err2 := strconv.Atoi(req)
@@ -225,12 +223,12 @@ func (a *App) HandleLink(rw *gin.Context) {
 			Id:           id,
 			Original_url: request.Original_url,
 			Short_name:   request.Short_name,
-			Short_url:    GenerateShortCode(request.Original_url),
+			Short_url:    "http://localhost:8080/" + GenerateShortCode(request.Original_url),
 		}
 		err1 := a.Repo.UpdateLink(a.Ctx, responce)
 		if err1 != nil {
-			if strings.Contains(err1.Error(), "unique constraint") || 
-			   strings.Contains(err1.Error(), "duplicate") {
+			if strings.Contains(err1.Error(), "unique constraint") ||
+				strings.Contains(err1.Error(), "duplicate") {
 				respondWithValidationError(rw, "short_name", "уже существует")
 				return
 			}
@@ -306,15 +304,15 @@ func (a *App) CreateLinks(rw *gin.Context) {
 	if shortName == "" {
 		shortName = GenerateUniqueString()
 	}
-	responce := dto.LinkResponce{
+	responce := dto.LinkResponce1{
 		Original_url: request.Original_url,
 		Short_name:   shortName,
-		Short_url:    GenerateShortCode(request.Original_url),
+		Short_url:    "http://localhost:8080/" + GenerateShortCode(request.Original_url),
 	}
 	err1 := a.Repo.CreateLink(a.Ctx, responce)
 	if err1 != nil {
-		if strings.Contains(err1.Error(), "unique constraint") || 
-		   strings.Contains(err1.Error(), "duplicate") {
+		if strings.Contains(err1.Error(), "unique constraint") ||
+			strings.Contains(err1.Error(), "duplicate") {
 			respondWithValidationError(rw, "short_name", "уже существует")
 			return
 		}

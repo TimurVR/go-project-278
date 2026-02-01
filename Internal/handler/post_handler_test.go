@@ -18,7 +18,7 @@ import (
 type MockRepository struct {
 	mock.Mock
 }
-func (m *MockRepository) CreateLink(ctx context.Context, link dto.LinkResponce) error {
+func (m *MockRepository) CreateLink(ctx context.Context, link dto.LinkResponce1) error {
 	args := m.Called(ctx, link)
 	return args.Error(0)
 }
@@ -91,7 +91,7 @@ func TestCreateLinks_Success(t *testing.T) {
 	mockRepo := &MockRepository{}
 	mockRepo.On("CheckShortNameExists", mock.Anything, "test-short").
 		Return(false, nil)
-	mockRepo.On("CreateLink", mock.Anything, mock.AnythingOfType("dto.LinkResponce")).
+	mockRepo.On("CreateLink", mock.Anything, mock.AnythingOfType("dto.LinkResponce1")).
 		Return(nil)
 
 	app := &handler.App{
@@ -119,7 +119,7 @@ func TestCreateLinks_Success(t *testing.T) {
 
 func TestCreateLinks_Success_AutoGenerateShortName(t *testing.T) {
 	mockRepo := &MockRepository{}
-	mockRepo.On("CreateLink", mock.Anything, mock.AnythingOfType("dto.LinkResponce")).
+	mockRepo.On("CreateLink", mock.Anything, mock.AnythingOfType("dto.LinkResponce1")).
 		Return(nil)
 
 	app := &handler.App{
@@ -167,7 +167,7 @@ func TestCreateLinks_InternalServerError(t *testing.T) {
 	mockRepo := &MockRepository{}
 	mockRepo.On("CheckShortNameExists", mock.Anything, "test-short").
 		Return(false, nil)
-	mockRepo.On("CreateLink", mock.Anything, mock.AnythingOfType("dto.LinkResponce")).
+	mockRepo.On("CreateLink", mock.Anything, mock.AnythingOfType("dto.LinkResponce1")).
 		Return(errors.New("database error"))
 
 	app := &handler.App{
