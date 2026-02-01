@@ -8,7 +8,7 @@ CREATE TABLE links (
 );
 CREATE TABLE link_visits (
     id SERIAL PRIMARY KEY,
-    link_id INTEGER NOT NULL REFERENCES links(id) ON DELETE CASCADE,
+    link_id INTEGER NOT NULL,
     ip VARCHAR(45),
     user_agent TEXT,
     referer TEXT,
