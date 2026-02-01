@@ -218,11 +218,16 @@ func (a *App) HandleLink(rw *gin.Context) {
 		if request.Short_name == "" {
 			request.Short_name = GenerateUniqueString()
 		}
+		host := rw.Request.Host
+		scheme := "http"
+		if rw.Request.Header.Get("X-Forwarded-Proto") == "https" {
+			scheme = "https"
+		}
+		baseURL := fmt.Sprintf("%s://%s", scheme, host)
 		responce := dto.LinkResponce{
-			Id:           id,
 			Original_url: request.Original_url,
 			Short_name:   request.Short_name,
-			Short_url:    "http://localhost:8080/" + GenerateShortCode(request.Original_url),
+			Short_url:    baseURL + "/" + GenerateShortCode(request.Original_url),
 		}
 		err1 := a.Repo.UpdateLink(a.Ctx, responce)
 		if err1 != nil {
@@ -303,10 +308,16 @@ func (a *App) CreateLinks(rw *gin.Context) {
 	if shortName == "" {
 		shortName = GenerateUniqueString()
 	}
+	host := rw.Request.Host
+	scheme := "http"
+	if rw.Request.Header.Get("X-Forwarded-Proto") == "https" {
+		scheme = "https"
+	}
+	baseURL := fmt.Sprintf("%s://%s", scheme, host)
 	responce := dto.LinkResponce1{
 		Original_url: request.Original_url,
 		Short_name:   shortName,
-		Short_url:    "http://localhost:8080/" + GenerateShortCode(request.Original_url),
+		Short_url:    baseURL + "/" + GenerateShortCode(request.Original_url),
 	}
 	err1 := a.Repo.CreateLink(a.Ctx, responce)
 	if err1 != nil {
