@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"strings"
 )
 
 type MockRepository struct {
@@ -373,11 +374,22 @@ func TestHandleLink_GET_NotFound(t *testing.T) {
 
 func TestHandleLink_PUT_Success(t *testing.T) {
     mockRepo := &MockRepository{}
+    existingLink := &dto.LinkResponce{  
+        Id:           1,
+        Original_url: "https://old.com",
+        Short_name:   "old-name",
+        Short_url:    "http://localhost/api/r/old-name",
+    }
+    mockRepo.On("GetLinkByID", mock.Anything, 1).
+        Return(existingLink, nil)  
     mockRepo.On("CheckShortNameExists", mock.Anything, "updated-name").
         Return(false, nil)  
-    mockRepo.On("UpdateLink", mock.Anything, mock.AnythingOfType("dto.LinkResponce")).
-        Return(nil)
-
+    mockRepo.On("UpdateLink", mock.Anything, mock.MatchedBy(func(link dto.LinkResponce) bool {
+        return link.Id == 1 &&
+               link.Original_url == "https://updated.com" &&
+               link.Short_name == "updated-name" &&
+               strings.Contains(link.Short_url, "/api/r/updated-name")
+    })).Return(nil)
     app := &handler.App{
         Ctx:  context.Background(),
         Repo: mockRepo,
@@ -393,16 +405,17 @@ func TestHandleLink_PUT_Success(t *testing.T) {
     c.Request = httptest.NewRequest("PUT", "/api/links/1", bytes.NewBufferString(jsonData))
     c.Request.Header.Set("Content-Type", "application/json")
     app.HandleLink(c)
-    assert.Equal(t, http.StatusOK, w.Code)
+    assert.Equal(t, http.StatusOK, w.Code) 
     var response dto.LinkResponce
     err := json.Unmarshal(w.Body.Bytes(), &response)
     assert.NoError(t, err)
+    assert.Equal(t, 1, response.Id) 
     assert.Equal(t, "https://updated.com", response.Original_url)
     assert.Equal(t, "updated-name", response.Short_name)
-    assert.NotEmpty(t, response.Short_url) 
+    assert.NotEmpty(t, response.Short_url)
+    assert.True(t, strings.Contains(response.Short_url, "/api/r/updated-name"))
     mockRepo.AssertExpectations(t)
 }
-
 func TestHandleLink_DELETE_Success(t *testing.T) {
 	mockRepo := &MockRepository{}
 	

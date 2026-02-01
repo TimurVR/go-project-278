@@ -160,10 +160,14 @@ func (a *App) HandleLink(rw *gin.Context) {
 		rw.JSON(http.StatusOK, link)
 
 	case "PUT":
-
 		id, err2 := strconv.Atoi(req)
 		if err2 != nil {
 			respondWithBadRequest(rw, "invalid id")
+			return
+		}
+		currentLink, err := a.Repo.GetLinkByID(a.Ctx, id)
+		if err != nil {
+			rw.JSON(http.StatusNotFound, gin.H{"error": "link not found"})
 			return
 		}
 		var request dto.LinkRequest
@@ -199,35 +203,35 @@ func (a *App) HandleLink(rw *gin.Context) {
 				validationErrors["short_name"] = "может содержать только буквы, цифры, дефисы и подчеркивания"
 			}
 		}
-
 		if len(validationErrors) > 0 {
 			respondWithValidationErrors(rw, validationErrors)
 			return
 		}
-		if request.Short_name != "" {
-			exists, err := a.Repo.CheckShortNameExists(a.Ctx, request.Short_name)
+		shortName := request.Short_name
+		if shortName == "" {
+			shortName = currentLink.Short_name
+		} else if shortName != currentLink.Short_name {
+			exists, err := a.Repo.CheckShortNameExists(a.Ctx, shortName)
 			if err != nil {
 				rw.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 				return
 			}
 			if exists {
-				currentLink, err := a.Repo.GetLinkByID(a.Ctx, id)
-				if err != nil || currentLink.Short_name != request.Short_name {
-					respondWithValidationError(rw, "short_name", "уже существует")
-					return
-				}
+				respondWithValidationError(rw, "short_name", "уже существует")
+				return
 			}
-		}
-		if request.Short_name == "" {
-			request.Short_name = GenerateUniqueString()
 		}
 		host := rw.Request.Host
 		scheme := "https"
+		if strings.Contains(host, "localhost") || strings.Contains(host, "127.0.0.1") {
+			scheme = "http"
+		}
 		baseURL := fmt.Sprintf("%s://%s", scheme, host)
 		responce := dto.LinkResponce{
+			Id:           id, 
 			Original_url: request.Original_url,
-			Short_name:   request.Short_name,
-			Short_url:    baseURL + "/api/r/" + request.Short_name,
+			Short_name:   shortName,
+			Short_url:    baseURL + "/api/r/" + shortName,
 		}
 		err1 := a.Repo.UpdateLink(a.Ctx, responce)
 		if err1 != nil {
@@ -240,6 +244,7 @@ func (a *App) HandleLink(rw *gin.Context) {
 			return
 		}
 		rw.JSON(http.StatusOK, responce)
+
 	case "DELETE":
 		id, err2 := strconv.Atoi(req)
 		if err2 != nil {
