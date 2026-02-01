@@ -18,9 +18,9 @@ import (
 type MockRepository struct {
 	mock.Mock
 }
-func (m *MockRepository) CreateLink(ctx context.Context, link dto.LinkResponce1) error {
+func (m *MockRepository) CreateLink(ctx context.Context, link dto.LinkResponce1) (int, error) {
 	args := m.Called(ctx, link)
-	return args.Error(0)
+	return args.Int(0), args.Error(1)
 }
 func (m *MockRepository) CheckShortNameExists(ctx context.Context, shortName string) (bool, error) {
     args := m.Called(ctx, shortName)
@@ -92,7 +92,7 @@ func TestCreateLinks_Success(t *testing.T) {
 	mockRepo.On("CheckShortNameExists", mock.Anything, "test-short").
 		Return(false, nil)
 	mockRepo.On("CreateLink", mock.Anything, mock.AnythingOfType("dto.LinkResponce1")).
-		Return(nil)
+		Return(1, nil) 
 
 	app := &handler.App{
 		Ctx:  context.Background(),
@@ -111,8 +111,13 @@ func TestCreateLinks_Success(t *testing.T) {
 	c.Request.Header.Set("Content-Type", "application/json")
 	
 	app.CreateLinks(c)
-	
-	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, http.StatusCreated, w.Code)
+	var response dto.LinkResponce
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Equal(t, "https://example.com", response.Original_url)
+	assert.Equal(t, "test-short", response.Short_name)
+	assert.Equal(t, 1, response.Id)	
 	mockRepo.AssertCalled(t, "CheckShortNameExists", mock.Anything, "test-short")
 	mockRepo.AssertExpectations(t)
 }
@@ -120,26 +125,24 @@ func TestCreateLinks_Success(t *testing.T) {
 func TestCreateLinks_Success_AutoGenerateShortName(t *testing.T) {
 	mockRepo := &MockRepository{}
 	mockRepo.On("CreateLink", mock.Anything, mock.AnythingOfType("dto.LinkResponce1")).
-		Return(nil)
-
+		Return(2, nil) 
 	app := &handler.App{
 		Ctx:  context.Background(),
 		Repo: mockRepo,
 	}
-
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	
 	jsonData := `{
 		"original_url": "https://example.com"
-	}`
-	
+	}`	
 	c.Request = httptest.NewRequest("POST", "/api/links", bytes.NewBufferString(jsonData))
 	c.Request.Header.Set("Content-Type", "application/json")
-	
-	app.CreateLinks(c)
-	
-	assert.Equal(t, http.StatusOK, w.Code)
+	app.CreateLinks(c)	
+	assert.Equal(t, http.StatusCreated, w.Code)
+	mockRepo.AssertCalled(t, "CreateLink", mock.Anything, mock.MatchedBy(func(link dto.LinkResponce1) bool {
+		return link.Original_url == "https://example.com" && link.Short_name != ""
+	}))
 	mockRepo.AssertExpectations(t)
 }
 
@@ -149,17 +152,12 @@ func TestCreateLinks_BadRequest_InvalidJSON(t *testing.T) {
 		Ctx:  context.Background(),
 		Repo: mockRepo,
 	}
-
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	
 	jsonData := `{invalid json`
-	
 	c.Request = httptest.NewRequest("POST", "/api/links", bytes.NewBufferString(jsonData))
 	c.Request.Header.Set("Content-Type", "application/json")
-	
-	app.CreateLinks(c)
-	
+	app.CreateLinks(c)	
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
@@ -168,26 +166,20 @@ func TestCreateLinks_InternalServerError(t *testing.T) {
 	mockRepo.On("CheckShortNameExists", mock.Anything, "test-short").
 		Return(false, nil)
 	mockRepo.On("CreateLink", mock.Anything, mock.AnythingOfType("dto.LinkResponce1")).
-		Return(errors.New("database error"))
-
+		Return(0, errors.New("database error"))
 	app := &handler.App{
 		Ctx:  context.Background(),
 		Repo: mockRepo,
 	}
-
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	
 	jsonData := `{
 		"original_url": "https://example.com",
 		"short_name": "test-short"
 	}`
-	
 	c.Request = httptest.NewRequest("POST", "/api/links", bytes.NewBufferString(jsonData))
 	c.Request.Header.Set("Content-Type", "application/json")
-	
 	app.CreateLinks(c)
-	
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	mockRepo.AssertExpectations(t)
 }
@@ -198,20 +190,15 @@ func TestCreateLinks_ValidationError_EmptyOriginalUrl(t *testing.T) {
 		Ctx:  context.Background(),
 		Repo: mockRepo,
 	}
-
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	
-	jsonData := `{
+    jsonData := `{
 		"original_url": "",
 		"short_name": "test"
 	}`
-	
 	c.Request = httptest.NewRequest("POST", "/api/links", bytes.NewBufferString(jsonData))
 	c.Request.Header.Set("Content-Type", "application/json")
-	
 	app.CreateLinks(c)
-	
 	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
 }
 
@@ -221,20 +208,15 @@ func TestCreateLinks_ValidationError_InvalidUrl(t *testing.T) {
 		Ctx:  context.Background(),
 		Repo: mockRepo,
 	}
-
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	
 	jsonData := `{
 		"original_url": "invalid-url",
 		"short_name": "test"
 	}`
-	
 	c.Request = httptest.NewRequest("POST", "/api/links", bytes.NewBufferString(jsonData))
 	c.Request.Header.Set("Content-Type", "application/json")
-	
 	app.CreateLinks(c)
-	
 	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
 }
 
@@ -244,20 +226,15 @@ func TestCreateLinks_ValidationError_ShortNameTooShort(t *testing.T) {
 		Ctx:  context.Background(),
 		Repo: mockRepo,
 	}
-
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	
 	jsonData := `{
 		"original_url": "https://example.com",
 		"short_name": "ab"
 	}`
-	
 	c.Request = httptest.NewRequest("POST", "/api/links", bytes.NewBufferString(jsonData))
 	c.Request.Header.Set("Content-Type", "application/json")
-	
 	app.CreateLinks(c)
-	
 	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
 }
 
@@ -267,20 +244,15 @@ func TestCreateLinks_ValidationError_ShortNameTooLong(t *testing.T) {
 		Ctx:  context.Background(),
 		Repo: mockRepo,
 	}
-
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	
 	jsonData := `{
 		"original_url": "https://example.com",
 		"short_name": "this-is-a-very-long-short-name-that-exceeds"
 	}`
-	
 	c.Request = httptest.NewRequest("POST", "/api/links", bytes.NewBufferString(jsonData))
 	c.Request.Header.Set("Content-Type", "application/json")
-	
 	app.CreateLinks(c)
-	
 	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
 }
 
@@ -311,6 +283,43 @@ func TestCreateLinks_ValidationError_ShortNameDuplicate(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
+func TestCreateLinks_DatabaseDuplicateError(t *testing.T) {
+	mockRepo := &MockRepository{}
+	mockRepo.On("CheckShortNameExists", mock.Anything, "duplicate").
+		Return(false, nil)
+	mockRepo.On("CreateLink", mock.Anything, mock.AnythingOfType("dto.LinkResponce1")).
+		Return(0, errors.New("duplicate key value violates unique constraint"))
+
+	app := &handler.App{
+		Ctx:  context.Background(),
+		Repo: mockRepo,
+	}
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	
+	jsonData := `{
+		"original_url": "https://example.com",
+		"short_name": "duplicate"
+	}`
+	
+	c.Request = httptest.NewRequest("POST", "/api/links", bytes.NewBufferString(jsonData))
+	c.Request.Header.Set("Content-Type", "application/json")
+	
+	app.CreateLinks(c)
+	
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Contains(t, response, "errors")
+	
+	errorsMap := response["errors"].(map[string]interface{})
+	assert.Equal(t, "уже существует", errorsMap["short_name"])
+	
+	mockRepo.AssertExpectations(t)
+}
 func TestHandleLink_GET_Success(t *testing.T) {
     mockRepo := &MockRepository{}
     expectedLink := &dto.LinkResponce{

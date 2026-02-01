@@ -12,7 +12,7 @@ type PostRepository interface {
 	GetLinkByID(ctx context.Context, id int) (*dto.LinkResponce, error)
 	GetLinkByShortName(ctx context.Context, shortName string) (*dto.LinkResponce, error)
 	DeleteLinkByID(ctx context.Context, id int) error
-	CreateLink(ctx context.Context, link dto.LinkResponce1) error
+	CreateLink(ctx context.Context, link dto.LinkResponce1) (int, error)
 	UpdateLink(ctx context.Context, link dto.LinkResponce) error
 	ListLinksLimited(ctx context.Context, start, limit int) ([]*dto.LinkResponce, error)
 	RecordVisit(ctx context.Context, visit dto.Visit) error
@@ -89,17 +89,17 @@ func (r *Repository) DeleteLinkByID(ctx context.Context, id int) error {
 	return nil
 }
 
-func (r *Repository) CreateLink(ctx context.Context, link dto.LinkResponce1) error {
+func (r *Repository) CreateLink(ctx context.Context, link dto.LinkResponce1) (int, error) {
 	query := `
 		INSERT INTO links (original_url, short_name, short_url)
-		VALUES ($1, $2, $3);
+		VALUES ($1, $2, $3) RETURNING id;
 	`
-	_, err := r.db.ExecContext(ctx, query, link.Original_url, link.Short_name, link.Short_url)
+	var id int
+	err := r.db.QueryRowContext(ctx, query, link.Original_url, link.Short_name, link.Short_url).Scan(&id)
 	if err != nil {
-		return fmt.Errorf("create link: %w", err)
+		return 0, fmt.Errorf("create link: %w", err)
 	}
-
-	return nil
+	return id, nil
 }
 
 func (r *Repository) UpdateLink(ctx context.Context, link dto.LinkResponce) error {

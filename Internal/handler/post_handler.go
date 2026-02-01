@@ -271,12 +271,14 @@ func (a *App) CreateLinks(rw *gin.Context) {
 		respondWithBadRequest(rw, "invalid request")
 		return
 	}
+	
 	validationErrors := make(map[string]string)
 	if request.Original_url == "" {
 		validationErrors["original_url"] = "обязательное поле"
 	} else if !isValidURL(request.Original_url) {
 		validationErrors["original_url"] = "некорректный URL"
 	}
+	
 	if request.Short_name != "" && !isValidShortName(request.Short_name) {
 		if len(request.Short_name) < 3 || len(request.Short_name) > 32 {
 			validationErrors["short_name"] = "длина должна быть от 3 до 32 символов"
@@ -284,10 +286,12 @@ func (a *App) CreateLinks(rw *gin.Context) {
 			validationErrors["short_name"] = "может содержать только буквы, цифры, дефисы и подчеркивания"
 		}
 	}
+	
 	if len(validationErrors) > 0 {
 		respondWithValidationErrors(rw, validationErrors)
 		return
 	}
+	
 	if request.Short_name != "" {
 		exists, err := a.Repo.CheckShortNameExists(a.Ctx, request.Short_name)
 		if err != nil {
@@ -299,19 +303,26 @@ func (a *App) CreateLinks(rw *gin.Context) {
 			return
 		}
 	}
+	
 	shortName := request.Short_name
 	if shortName == "" {
 		shortName = GenerateUniqueString()
 	}
+	
 	host := rw.Request.Host
 	scheme := "https"
+	if strings.Contains(host, "localhost") || strings.Contains(host, "127.0.0.1") {
+		scheme = "http"
+	}
+	
 	baseURL := fmt.Sprintf("%s://%s", scheme, host)
 	responce := dto.LinkResponce1{
 		Original_url: request.Original_url,
 		Short_name:   shortName,
-		Short_url:      baseURL + "/api/r/" + shortName,
+		Short_url:    baseURL + "/api/r/" + shortName,
 	}
-	err1 := a.Repo.CreateLink(a.Ctx, responce)
+	
+	id, err1 := a.Repo.CreateLink(a.Ctx, responce)
 	if err1 != nil {
 		if strings.Contains(err1.Error(), "unique constraint") ||
 			strings.Contains(err1.Error(), "duplicate") {
@@ -321,7 +332,13 @@ func (a *App) CreateLinks(rw *gin.Context) {
 		rw.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
-	rw.Status(201)
+	responce1:=dto.LinkResponce{
+        Id:id,
+		Original_url: request.Original_url,
+		Short_name:   shortName,
+		Short_url:    baseURL + "/api/r/" + shortName,
+	}
+	rw.JSON(http.StatusCreated, responce1)
 }
 
 func (a *App) GetLinks(rw *gin.Context) {
