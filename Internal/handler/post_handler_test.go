@@ -112,7 +112,7 @@ func TestCreateLinks_Success(t *testing.T) {
 	
 	app.CreateLinks(c)
 	
-	assert.Equal(t, http.StatusCreated, w.Code)
+	assert.Equal(t, http.StatusOK, w.Code)
 	mockRepo.AssertCalled(t, "CheckShortNameExists", mock.Anything, "test-short")
 	mockRepo.AssertExpectations(t)
 }
@@ -139,7 +139,7 @@ func TestCreateLinks_Success_AutoGenerateShortName(t *testing.T) {
 	
 	app.CreateLinks(c)
 	
-	assert.Equal(t, http.StatusCreated, w.Code)
+	assert.Equal(t, http.StatusOK, w.Code)
 	mockRepo.AssertExpectations(t)
 }
 

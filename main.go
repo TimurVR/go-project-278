@@ -42,8 +42,7 @@ func main() {
 	ExposeHeaders:    []string{"*"},
 	AllowCredentials: true,
 	MaxAge:           12 * time.Hour,
-}))
-	//r.Use(handler.JSONValidationMiddleware())
+	}))
 	r.Use(gin.Recovery())
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{

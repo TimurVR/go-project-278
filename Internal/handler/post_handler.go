@@ -102,7 +102,6 @@ func GenerateShortCode(url string) string {
 }
 
 func (a *App) Routes(r *gin.Engine) {
-	//r.Use(JSONValidationMiddleware())
 	r.GET("/r/:code", a.Redirect)
 	r.POST("/api/links", a.CreateLinks)
 	r.GET("/api/links", a.GetLinks)
@@ -319,8 +318,7 @@ func (a *App) CreateLinks(rw *gin.Context) {
 		rw.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
-
-	rw.JSON(http.StatusCreated, responce)
+	rw.Status(201)
 }
 
 func (a *App) GetLinks(rw *gin.Context) {
