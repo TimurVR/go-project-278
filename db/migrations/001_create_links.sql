@@ -11,7 +11,6 @@ CREATE TABLE link_visits (
     link_id INTEGER NOT NULL,
     ip VARCHAR(45),
     user_agent TEXT,
-    referer TEXT,
     status INTEGER,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
