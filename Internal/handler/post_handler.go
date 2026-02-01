@@ -136,6 +136,7 @@ func (a *App) Redirect(c *gin.Context) {
 	}
 	err = a.Repo.RecordVisit(a.Ctx, visit)
 	if err != nil {
+		fmt.Print(err)
 		c.JSON(http.StatusBadGateway, gin.H{"error": err})
 		return
 	}
