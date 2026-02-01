@@ -15,7 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
+    "log"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
@@ -136,8 +136,8 @@ func (a *App) Redirect(c *gin.Context) {
 		CreatedAt: time.Now(),
 	}
 	_ = a.Repo.RecordVisit(a.Ctx, visit)
-
 	c.Redirect(http.StatusFound, link.Original_url)
+	log.Printf("Перенаправление: %s -> %s", link.Original_url)
 }
 
 func (a *App) HandleLink(rw *gin.Context) {
@@ -219,10 +219,7 @@ func (a *App) HandleLink(rw *gin.Context) {
 			request.Short_name = GenerateUniqueString()
 		}
 		host := rw.Request.Host
-		scheme := "http"
-		if rw.Request.Header.Get("X-Forwarded-Proto") == "https" {
-			scheme = "https"
-		}
+		scheme := "https"
 		baseURL := fmt.Sprintf("%s://%s", scheme, host)
 		responce := dto.LinkResponce{
 			Original_url: request.Original_url,
@@ -309,10 +306,7 @@ func (a *App) CreateLinks(rw *gin.Context) {
 		shortName = GenerateUniqueString()
 	}
 	host := rw.Request.Host
-	scheme := "http"
-	if rw.Request.Header.Get("X-Forwarded-Proto") == "https" {
-		scheme = "https"
-	}
+	scheme := "https"
 	baseURL := fmt.Sprintf("%s://%s", scheme, host)
 	responce := dto.LinkResponce1{
 		Original_url: request.Original_url,
