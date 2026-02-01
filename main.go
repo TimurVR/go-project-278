@@ -36,13 +36,13 @@ func main() {
 	r := gin.Default()
 	r.TrustedPlatform = gin.PlatformCloudflare
 	r.Use(cors.New(cors.Config{
-	AllowOrigins:     []string{"*"}, 
-	AllowMethods:     []string{"*"},
-	AllowHeaders:     []string{"*"},
-	ExposeHeaders:    []string{"*"},
-	AllowCredentials: true,
-	MaxAge:           12 * time.Hour,
-	}))
+        AllowOrigins:     []string{"*"},
+        AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+        AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
+        ExposeHeaders:    []string{"Content-Length"},
+        AllowCredentials: true,
+        MaxAge:           12 * time.Hour,
+    }))
 	r.Use(gin.Recovery())
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
