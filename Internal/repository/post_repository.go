@@ -165,8 +165,8 @@ func (r *Repository) GetLinkByShortName(ctx context.Context, shortName string) (
 
 func (r *Repository) RecordVisit(ctx context.Context, v dto.Visit) error {
 	query := `
-		INSERT INTO link_visits (link_id, ip, user_agent, referer, status, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6);
+		INSERT INTO link_visits (link_id, ip, user_agent, status, created_at)
+		VALUES ($1, $2, $3, $4, $5);
 	`
 	_, err := r.db.ExecContext(ctx, query, v.LinkID, v.IP, v.UserAgent, v.Status, v.CreatedAt)
 	if err != nil {
@@ -176,7 +176,7 @@ func (r *Repository) RecordVisit(ctx context.Context, v dto.Visit) error {
 }
 
 func (r *Repository) ListVisits(ctx context.Context) ([]*dto.Visit, error) {
-	query := `SELECT id, link_id, ip, user_agent, referer, status, created_at FROM link_visits ORDER BY created_at DESC;`
+	query := `SELECT id, link_id, ip, user_agent, status, created_at FROM link_visits ORDER BY created_at DESC;`
 	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
