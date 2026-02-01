@@ -136,7 +136,7 @@ func (a *App) Redirect(c *gin.Context) {
 	}
 	err = a.Repo.RecordVisit(a.Ctx, visit)
 	if err != nil {
-		c.JSON(http.StatusBadGateway, gin.H{"error": "Link not found"})
+		c.JSON(http.StatusBadGateway, gin.H{"error": err})
 		return
 	}
 	c.Redirect(http.StatusFound, link.Original_url)
