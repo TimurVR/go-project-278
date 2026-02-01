@@ -196,7 +196,7 @@ func (r *Repository) ListVisits(ctx context.Context) ([]*dto.Visit, error) {
 
 func (r *Repository) ListVisitsLimited(ctx context.Context, start, limit int) ([]*dto.Visit, error) {
 	query := `
-		SELECT id, link_id, ip, user_agent, referer, status, created_at 
+		SELECT id, link_id, ip, user_agent, status, created_at 
 		FROM link_visits 
 		ORDER BY created_at DESC 
 		LIMIT $1 OFFSET $2;

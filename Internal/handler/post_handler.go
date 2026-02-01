@@ -406,13 +406,11 @@ func (a *App) GetVisits(rw *gin.Context) {
 		return
 	}
 	responce, err := a.Repo.ListVisitsLimited(a.Ctx, start, end)
-	fmt.Print("tut")
 	if err != nil {
 		fmt.Print(err)
 		rw.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
-	fmt.Print("tam")
 	rw.Header("Content-Range", fmt.Sprintf("visits %d-%d/%d", start, end, total))
 	rw.JSON(http.StatusOK, responce)
 }
