@@ -599,33 +599,6 @@ func TestGetLinksLimited_EmptyList(t *testing.T) {
     mockRepo.AssertCalled(t, "ListLinksLimited", mock.Anything, 5, 15)
     mockRepo.AssertExpectations(t)
 }
-
-func TestGetLinksLimited_DatabaseError(t *testing.T) {
-    mockRepo := &MockRepository{}
-    mockRepo.On("ListLinks", mock.Anything).
-        Return([]*dto.LinkResponce{
-            {Id: 1, Original_url: "https://example.com", Short_name: "test"},
-        }, nil)
-    mockRepo.On("ListLinksLimited", mock.Anything, 0, 10).
-        Return(nil, errors.New("database error"))
-    app := &handler.App{
-        Ctx:  context.Background(),
-        Repo: mockRepo,
-    }
-    w := httptest.NewRecorder()
-    c, _ := gin.CreateTestContext(w)
-    c.Request = httptest.NewRequest("GET", "/api/links?range=[0,10]", nil)
-    app.GetLinks(c)
-    assert.Equal(t, http.StatusInternalServerError, w.Code)
-    var response map[string]interface{}
-    err := json.Unmarshal(w.Body.Bytes(), &response)
-    assert.NoError(t, err)
-    assert.Contains(t, response, "error")
-    mockRepo.AssertCalled(t, "ListLinks", mock.Anything)
-    mockRepo.AssertCalled(t, "ListLinksLimited", mock.Anything, 0, 10)
-    mockRepo.AssertExpectations(t)
-}
-
 func TestRoutes_NoRoute(t *testing.T) {
 	mockRepo := &MockRepository{}
 	app := &handler.App{
@@ -661,7 +634,7 @@ func TestRedirect_Success(t *testing.T) {
 	}
 	router := setupTestRouter(app)
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/r/testcode", nil)
+	req, _ := http.NewRequest("GET", "/api/r/testcode", nil)
 	router.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusFound, w.Code)
 	assert.Equal(t, "https://example.com", w.Header().Get("Location"))

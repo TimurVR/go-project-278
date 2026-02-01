@@ -15,7 +15,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-    "log"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
@@ -102,7 +101,7 @@ func GenerateShortCode(url string) string {
 }
 
 func (a *App) Routes(r *gin.Engine) {
-	r.GET("/r/:code", a.Redirect)
+	r.GET("/api/r/:code", a.Redirect)
 	r.POST("/api/links", a.CreateLinks)
 	r.GET("/api/links", a.GetLinks)
 	r.GET("/api/links/:id", a.HandleLink)
@@ -137,7 +136,6 @@ func (a *App) Redirect(c *gin.Context) {
 	}
 	_ = a.Repo.RecordVisit(a.Ctx, visit)
 	c.Redirect(http.StatusFound, link.Original_url)
-	log.Printf("Перенаправление: %s -> %s", link.Original_url)
 }
 
 func (a *App) HandleLink(rw *gin.Context) {
@@ -224,7 +222,7 @@ func (a *App) HandleLink(rw *gin.Context) {
 		responce := dto.LinkResponce{
 			Original_url: request.Original_url,
 			Short_name:   request.Short_name,
-			Short_url:    baseURL + "/" + GenerateShortCode(request.Original_url),
+			Short_url:    baseURL + "/api/r/" + request.Short_name,
 		}
 		err1 := a.Repo.UpdateLink(a.Ctx, responce)
 		if err1 != nil {
@@ -311,7 +309,7 @@ func (a *App) CreateLinks(rw *gin.Context) {
 	responce := dto.LinkResponce1{
 		Original_url: request.Original_url,
 		Short_name:   shortName,
-		Short_url:    baseURL + "/" + GenerateShortCode(request.Original_url),
+		Short_url:      baseURL + "/api/r/" + shortName,
 	}
 	err1 := a.Repo.CreateLink(a.Ctx, responce)
 	if err1 != nil {
