@@ -17,9 +17,6 @@ import (
 
 func main() {
 	databaseURL := os.Getenv("DATABASE_URL")
-	if databaseURL == "" {
-		databaseURL = "postgresql://go_project_user:Fj2SbLdlar3a4l48bXHObp5r6ewZEzpO@dpg-d5u8jbh4tr6s739dbca0-a/go_project_db_h0do"
-	}
 	database, err := sql.Open("postgres", databaseURL)
 	if err != nil {
 		log.Fatal(err)
@@ -36,7 +33,7 @@ func main() {
 	r := gin.Default()
 	r.TrustedPlatform = gin.PlatformCloudflare
 	r.Use(cors.New(cors.Config{
-        AllowOrigins:     []string{"*"},
+        AllowOrigins:     []string{"http://localhost:5173", "http://localhost:3000"},
         AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
         AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
         ExposeHeaders:    []string{"Content-Length"},
@@ -45,11 +42,8 @@ func main() {
     }))
 	r.Use(gin.Recovery())
 	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "pong",
-			"time":    time.Now().Format(time.RFC3339),
-		})
-	})
+    c.String(http.StatusOK, "pong")
+    })
 	appCtx := context.Background()
 	a := app.NewApp(appCtx, database)
 	a.Routes(r)
