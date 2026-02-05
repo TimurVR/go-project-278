@@ -332,7 +332,7 @@ func (a *App) CreateLinks(rw *gin.Context) {
 	responce := dto.LinkResponce1{
 		Original_url: request.Original_url,
 		Short_name:   shortName,
-		Short_url:    baseURL + "/r/" + shortName,
+		Short_url:    baseURL + "/api/r/" + shortName,
 	}
 
 	id, err1 := a.Repo.CreateLink(a.Ctx, responce)
