@@ -427,8 +427,8 @@ func TestHandleLink_PUT_Success(t *testing.T) {
 func TestHandleLink_DELETE_Success(t *testing.T) {
 	mockRepo := &MockRepository{}
 
-	mockRepo.On("DeleteLinkByID", mock.Anything, 1).
-		Return(nil)
+	mockRepo.On("GetLinkByID", mock.Anything, 1).Return(&dto.LinkResponce{}, nil)
+	mockRepo.On("DeleteLinkByID", mock.Anything, 1).Return(nil)
 
 	app := &handler.App{
 		Ctx:  context.Background(),
@@ -445,7 +445,6 @@ func TestHandleLink_DELETE_Success(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Empty(t, w.Body.String())
-
 	mockRepo.AssertExpectations(t)
 }
 
@@ -470,8 +469,7 @@ func TestHandleLink_DELETE_InvalidId(t *testing.T) {
 func TestHandleLink_DELETE_NotFound(t *testing.T) {
 	mockRepo := &MockRepository{}
 
-	mockRepo.On("DeleteLinkByID", mock.Anything, 999).
-		Return(errors.New("link not found"))
+	mockRepo.On("GetLinkByID", mock.Anything, 999).Return(nil, errors.New("not found"))
 
 	app := &handler.App{
 		Ctx:  context.Background(),
@@ -486,7 +484,8 @@ func TestHandleLink_DELETE_NotFound(t *testing.T) {
 
 	app.HandleLink(c)
 
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.Contains(t, w.Body.String(), "link not found")
 	mockRepo.AssertExpectations(t)
 }
 

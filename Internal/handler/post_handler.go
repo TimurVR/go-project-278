@@ -254,6 +254,11 @@ func (a *App) HandleLink(rw *gin.Context) {
 			respondWithBadRequest(rw, "invalid id")
 			return
 		}
+		_, err3 := a.Repo.GetLinkByID(a.Ctx, id)
+		if err3 != nil {
+			rw.JSON(http.StatusNotFound, gin.H{"error": "link not found"})
+			return
+		}
 		err := a.Repo.DeleteLinkByID(a.Ctx, id)
 		if err != nil {
 			rw.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
