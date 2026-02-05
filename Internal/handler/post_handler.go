@@ -102,7 +102,7 @@ func GenerateShortCode(url string) string {
 }
 
 func (a *App) Routes(r *gin.Engine) {
-	r.GET("/r/:code", a.Redirect)
+	r.GET("/api/r/:code", a.Redirect)
 	api := r.Group("/api")
 	{
 		api.GET("/links", a.GetLinks)
@@ -234,7 +234,7 @@ func (a *App) HandleLink(rw *gin.Context) {
 			Id:           id,
 			Original_url: request.Original_url,
 			Short_name:   shortName,
-			Short_url:    baseURL + "/r/" + shortName,
+			Short_url:    baseURL + "/api/r/" + shortName,
 		}
 		err1 := a.Repo.UpdateLink(a.Ctx, responce)
 		if err1 != nil {
@@ -349,7 +349,7 @@ func (a *App) CreateLinks(rw *gin.Context) {
 		Id:           id,
 		Original_url: request.Original_url,
 		Short_name:   shortName,
-		Short_url:    baseURL + "/r/" + shortName,
+		Short_url:    baseURL + "/api/r/" + shortName,
 	}
 	rw.JSON(http.StatusCreated, responce1)
 }
