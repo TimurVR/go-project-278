@@ -9,23 +9,25 @@ import (
 	"go-project-278/Internal/handler"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"strings"
 )
 
 type MockRepository struct {
 	mock.Mock
 }
+
 func (m *MockRepository) CreateLink(ctx context.Context, link dto.LinkResponce1) (int, error) {
 	args := m.Called(ctx, link)
 	return args.Int(0), args.Error(1)
 }
 func (m *MockRepository) CheckShortNameExists(ctx context.Context, shortName string) (bool, error) {
-    args := m.Called(ctx, shortName)
-    return args.Bool(0), args.Error(1)
+	args := m.Called(ctx, shortName)
+	return args.Bool(0), args.Error(1)
 }
 
 func (m *MockRepository) GetLinkByID(ctx context.Context, Id int) (*dto.LinkResponce, error) {
@@ -44,11 +46,11 @@ func (m *MockRepository) ListLinks(ctx context.Context) ([]*dto.LinkResponce, er
 	return args.Get(0).([]*dto.LinkResponce), args.Error(1)
 }
 func (m *MockRepository) ListLinksLimited(ctx context.Context, start, end int) ([]*dto.LinkResponce, error) {
-    args := m.Called(ctx, start, end)
-    if args.Get(0) == nil {
-        return nil, args.Error(1)
-    }
-    return args.Get(0).([]*dto.LinkResponce), args.Error(1)
+	args := m.Called(ctx, start, end)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*dto.LinkResponce), args.Error(1)
 }
 func (m *MockRepository) UpdateLink(ctx context.Context, link dto.LinkResponce) error {
 	args := m.Called(ctx, link)
@@ -68,7 +70,9 @@ func setupTestRouter(app *handler.App) *gin.Engine {
 }
 func (m *MockRepository) GetLinkByShortName(ctx context.Context, shortName string) (*dto.LinkResponce, error) {
 	args := m.Called(ctx, shortName)
-	if args.Get(0) == nil { return nil, args.Error(1) }
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	return args.Get(0).(*dto.LinkResponce), args.Error(1)
 }
 
@@ -79,13 +83,17 @@ func (m *MockRepository) RecordVisit(ctx context.Context, visit dto.Visit) error
 
 func (m *MockRepository) ListVisits(ctx context.Context) ([]*dto.Visit, error) {
 	args := m.Called(ctx)
-	if args.Get(0) == nil { return nil, args.Error(1) }
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	return args.Get(0).([]*dto.Visit), args.Error(1)
 }
 
 func (m *MockRepository) ListVisitsLimited(ctx context.Context, start, limit int) ([]*dto.Visit, error) {
 	args := m.Called(ctx, start, limit)
-	if args.Get(0) == nil { return nil, args.Error(1) }
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	return args.Get(0).([]*dto.Visit), args.Error(1)
 }
 func TestCreateLinks_Success(t *testing.T) {
@@ -93,7 +101,7 @@ func TestCreateLinks_Success(t *testing.T) {
 	mockRepo.On("CheckShortNameExists", mock.Anything, "test-short").
 		Return(false, nil)
 	mockRepo.On("CreateLink", mock.Anything, mock.AnythingOfType("dto.LinkResponce1")).
-		Return(1, nil) 
+		Return(1, nil)
 
 	app := &handler.App{
 		Ctx:  context.Background(),
@@ -102,15 +110,15 @@ func TestCreateLinks_Success(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	
+
 	jsonData := `{
 		"original_url": "https://example.com",
 		"short_name": "test-short"
 	}`
-	
+
 	c.Request = httptest.NewRequest("POST", "/api/links", bytes.NewBufferString(jsonData))
 	c.Request.Header.Set("Content-Type", "application/json")
-	
+
 	app.CreateLinks(c)
 	assert.Equal(t, http.StatusCreated, w.Code)
 	var response dto.LinkResponce
@@ -118,7 +126,7 @@ func TestCreateLinks_Success(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "https://example.com", response.Original_url)
 	assert.Equal(t, "test-short", response.Short_name)
-	assert.Equal(t, 1, response.Id)	
+	assert.Equal(t, 1, response.Id)
 	mockRepo.AssertCalled(t, "CheckShortNameExists", mock.Anything, "test-short")
 	mockRepo.AssertExpectations(t)
 }
@@ -126,20 +134,20 @@ func TestCreateLinks_Success(t *testing.T) {
 func TestCreateLinks_Success_AutoGenerateShortName(t *testing.T) {
 	mockRepo := &MockRepository{}
 	mockRepo.On("CreateLink", mock.Anything, mock.AnythingOfType("dto.LinkResponce1")).
-		Return(2, nil) 
+		Return(2, nil)
 	app := &handler.App{
 		Ctx:  context.Background(),
 		Repo: mockRepo,
 	}
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	
+
 	jsonData := `{
 		"original_url": "https://example.com"
-	}`	
+	}`
 	c.Request = httptest.NewRequest("POST", "/api/links", bytes.NewBufferString(jsonData))
 	c.Request.Header.Set("Content-Type", "application/json")
-	app.CreateLinks(c)	
+	app.CreateLinks(c)
 	assert.Equal(t, http.StatusCreated, w.Code)
 	mockRepo.AssertCalled(t, "CreateLink", mock.Anything, mock.MatchedBy(func(link dto.LinkResponce1) bool {
 		return link.Original_url == "https://example.com" && link.Short_name != ""
@@ -158,7 +166,7 @@ func TestCreateLinks_BadRequest_InvalidJSON(t *testing.T) {
 	jsonData := `{invalid json`
 	c.Request = httptest.NewRequest("POST", "/api/links", bytes.NewBufferString(jsonData))
 	c.Request.Header.Set("Content-Type", "application/json")
-	app.CreateLinks(c)	
+	app.CreateLinks(c)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
@@ -193,7 +201,7 @@ func TestCreateLinks_ValidationError_EmptyOriginalUrl(t *testing.T) {
 	}
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-    jsonData := `{
+	jsonData := `{
 		"original_url": "",
 		"short_name": "test"
 	}`
@@ -269,17 +277,17 @@ func TestCreateLinks_ValidationError_ShortNameDuplicate(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	
+
 	jsonData := `{
 		"original_url": "https://example.com",
 		"short_name": "existing"
 	}`
-	
+
 	c.Request = httptest.NewRequest("POST", "/api/links", bytes.NewBufferString(jsonData))
 	c.Request.Header.Set("Content-Type", "application/json")
-	
+
 	app.CreateLinks(c)
-	
+
 	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
 	mockRepo.AssertExpectations(t)
 }
@@ -298,60 +306,60 @@ func TestCreateLinks_DatabaseDuplicateError(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	
+
 	jsonData := `{
 		"original_url": "https://example.com",
 		"short_name": "duplicate"
 	}`
-	
+
 	c.Request = httptest.NewRequest("POST", "/api/links", bytes.NewBufferString(jsonData))
 	c.Request.Header.Set("Content-Type", "application/json")
-	
+
 	app.CreateLinks(c)
-	
+
 	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
-	
+
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Contains(t, response, "errors")
-	
+
 	errorsMap := response["errors"].(map[string]interface{})
 	assert.Equal(t, "уже существует", errorsMap["short_name"])
-	
+
 	mockRepo.AssertExpectations(t)
 }
 func TestHandleLink_GET_Success(t *testing.T) {
-    mockRepo := &MockRepository{}
-    expectedLink := &dto.LinkResponce{
-        Id:           1,
-        Original_url: "https://example.com",
-        Short_name:   "test",
-        Short_url:    "abc123",
-    }
-    mockRepo.On("GetLinkByID", mock.Anything, 1).
-        Return(expectedLink, nil)  
-    app := &handler.App{
-        Ctx:  context.Background(),
-        Repo: mockRepo,
-    }
-    w := httptest.NewRecorder()
-    c, _ := gin.CreateTestContext(w)
-    c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
-    c.Request = httptest.NewRequest("GET", "/api/links/1", nil)
-    app.HandleLink(c)
-    assert.Equal(t, http.StatusOK, w.Code)
-    var response dto.LinkResponce
-    err := json.Unmarshal(w.Body.Bytes(), &response)
-    assert.NoError(t, err)
-    assert.Equal(t, expectedLink.Id, response.Id)
-    assert.Equal(t, expectedLink.Original_url, response.Original_url)
-    mockRepo.AssertExpectations(t) 
+	mockRepo := &MockRepository{}
+	expectedLink := &dto.LinkResponce{
+		Id:           1,
+		Original_url: "https://example.com",
+		Short_name:   "test",
+		Short_url:    "abc123",
+	}
+	mockRepo.On("GetLinkByID", mock.Anything, 1).
+		Return(expectedLink, nil)
+	app := &handler.App{
+		Ctx:  context.Background(),
+		Repo: mockRepo,
+	}
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
+	c.Request = httptest.NewRequest("GET", "/api/links/1", nil)
+	app.HandleLink(c)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var response dto.LinkResponce
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedLink.Id, response.Id)
+	assert.Equal(t, expectedLink.Original_url, response.Original_url)
+	mockRepo.AssertExpectations(t)
 }
 
 func TestHandleLink_GET_NotFound(t *testing.T) {
 	mockRepo := &MockRepository{}
-	
+
 	mockRepo.On("GetLinkByID", mock.Anything, 999).
 		Return(nil, errors.New("link not found"))
 
@@ -362,63 +370,63 @@ func TestHandleLink_GET_NotFound(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	
+
 	c.Params = gin.Params{gin.Param{Key: "id", Value: "999"}}
 	c.Request = httptest.NewRequest("GET", "/api/links/999", nil)
-	
+
 	app.HandleLink(c)
-	
+
 	assert.Equal(t, http.StatusNotFound, w.Code)
 	mockRepo.AssertExpectations(t)
 }
 
 func TestHandleLink_PUT_Success(t *testing.T) {
-    mockRepo := &MockRepository{}
-    existingLink := &dto.LinkResponce{  
-        Id:           1,
-        Original_url: "https://old.com",
-        Short_name:   "old-name",
-        Short_url:    "http://localhost/api/r/old-name",
-    }
-    mockRepo.On("GetLinkByID", mock.Anything, 1).
-        Return(existingLink, nil)  
-    mockRepo.On("CheckShortNameExists", mock.Anything, "updated-name").
-        Return(false, nil)  
-    mockRepo.On("UpdateLink", mock.Anything, mock.MatchedBy(func(link dto.LinkResponce) bool {
-        return link.Id == 1 &&
-               link.Original_url == "https://updated.com" &&
-               link.Short_name == "updated-name" &&
-               strings.Contains(link.Short_url, "/api/r/updated-name")
-    })).Return(nil)
-    app := &handler.App{
-        Ctx:  context.Background(),
-        Repo: mockRepo,
-    }
-    w := httptest.NewRecorder()
-    c, _ := gin.CreateTestContext(w)
-    c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
-    
-    jsonData := `{
+	mockRepo := &MockRepository{}
+	existingLink := &dto.LinkResponce{
+		Id:           1,
+		Original_url: "https://old.com",
+		Short_name:   "old-name",
+		Short_url:    "http://localhost/api/r/old-name",
+	}
+	mockRepo.On("GetLinkByID", mock.Anything, 1).
+		Return(existingLink, nil)
+	mockRepo.On("CheckShortNameExists", mock.Anything, "updated-name").
+		Return(false, nil)
+	mockRepo.On("UpdateLink", mock.Anything, mock.MatchedBy(func(link dto.LinkResponce) bool {
+		return link.Id == 1 &&
+			link.Original_url == "https://updated.com" &&
+			link.Short_name == "updated-name" &&
+			strings.Contains(link.Short_url, "/api/r/updated-name")
+	})).Return(nil)
+	app := &handler.App{
+		Ctx:  context.Background(),
+		Repo: mockRepo,
+	}
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
+
+	jsonData := `{
         "original_url": "https://updated.com",
         "short_name": "updated-name"
     }`
-    c.Request = httptest.NewRequest("PUT", "/api/links/1", bytes.NewBufferString(jsonData))
-    c.Request.Header.Set("Content-Type", "application/json")
-    app.HandleLink(c)
-    assert.Equal(t, http.StatusOK, w.Code) 
-    var response dto.LinkResponce
-    err := json.Unmarshal(w.Body.Bytes(), &response)
-    assert.NoError(t, err)
-    assert.Equal(t, 1, response.Id) 
-    assert.Equal(t, "https://updated.com", response.Original_url)
-    assert.Equal(t, "updated-name", response.Short_name)
-    assert.NotEmpty(t, response.Short_url)
-    assert.True(t, strings.Contains(response.Short_url, "/api/r/updated-name"))
-    mockRepo.AssertExpectations(t)
+	c.Request = httptest.NewRequest("PUT", "/api/links/1", bytes.NewBufferString(jsonData))
+	c.Request.Header.Set("Content-Type", "application/json")
+	app.HandleLink(c)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var response dto.LinkResponce
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, response.Id)
+	assert.Equal(t, "https://updated.com", response.Original_url)
+	assert.Equal(t, "updated-name", response.Short_name)
+	assert.NotEmpty(t, response.Short_url)
+	assert.True(t, strings.Contains(response.Short_url, "/api/r/updated-name"))
+	mockRepo.AssertExpectations(t)
 }
 func TestHandleLink_DELETE_Success(t *testing.T) {
 	mockRepo := &MockRepository{}
-	
+
 	mockRepo.On("DeleteLinkByID", mock.Anything, 1).
 		Return(nil)
 
@@ -429,15 +437,15 @@ func TestHandleLink_DELETE_Success(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	
+
 	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
 	c.Request = httptest.NewRequest("DELETE", "/api/links/1", nil)
-	
+
 	app.HandleLink(c)
-	
+
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Empty(t, w.Body.String())
-	
+
 	mockRepo.AssertExpectations(t)
 }
 
@@ -450,18 +458,18 @@ func TestHandleLink_DELETE_InvalidId(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	
+
 	c.Params = gin.Params{gin.Param{Key: "id", Value: "invalid"}}
 	c.Request = httptest.NewRequest("DELETE", "/api/links/invalid", nil)
-	
+
 	app.HandleLink(c)
-	
+
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 func TestHandleLink_DELETE_NotFound(t *testing.T) {
 	mockRepo := &MockRepository{}
-	
+
 	mockRepo.On("DeleteLinkByID", mock.Anything, 999).
 		Return(errors.New("link not found"))
 
@@ -472,19 +480,19 @@ func TestHandleLink_DELETE_NotFound(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	
+
 	c.Params = gin.Params{gin.Param{Key: "id", Value: "999"}}
 	c.Request = httptest.NewRequest("DELETE", "/api/links/999", nil)
-	
+
 	app.HandleLink(c)
-	
+
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	mockRepo.AssertExpectations(t)
 }
 
 func TestGetLinks_Success(t *testing.T) {
 	mockRepo := &MockRepository{}
-	
+
 	expectedLinks := []*dto.LinkResponce{
 		{
 			Id:           1,
@@ -499,7 +507,7 @@ func TestGetLinks_Success(t *testing.T) {
 			Short_url:    "def456",
 		},
 	}
-	
+
 	mockRepo.On("ListLinks", mock.Anything).
 		Return(expectedLinks, nil)
 
@@ -510,26 +518,26 @@ func TestGetLinks_Success(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	
+
 	c.Request = httptest.NewRequest("GET", "/api/links", nil)
-	
+
 	app.GetLinks(c)
-	
+
 	assert.Equal(t, http.StatusOK, w.Code)
-	
+
 	var response []dto.LinkResponce
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Len(t, response, 2)
 	assert.Equal(t, expectedLinks[0].Id, response[0].Id)
 	assert.Equal(t, expectedLinks[1].Id, response[1].Id)
-	
+
 	mockRepo.AssertExpectations(t)
 }
 
 func TestGetLinks_EmptyList(t *testing.T) {
 	mockRepo := &MockRepository{}
-	
+
 	mockRepo.On("ListLinks", mock.Anything).
 		Return([]*dto.LinkResponce{}, nil)
 
@@ -540,86 +548,86 @@ func TestGetLinks_EmptyList(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	
+
 	c.Request = httptest.NewRequest("GET", "/api/links", nil)
-	
+
 	app.GetLinks(c)
-	
+
 	assert.Equal(t, http.StatusOK, w.Code)
-	
+
 	var response []dto.LinkResponce
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Empty(t, response)
-	
+
 	mockRepo.AssertExpectations(t)
 }
 
 func TestGetLinksLimited_Success(t *testing.T) {
-    mockRepo := &MockRepository{}
-    expectedLinks := []*dto.LinkResponce{
-        {
-            Id:           1,
-            Original_url: "https://example1.com",
-            Short_name:   "test1",
-            Short_url:    "abc123",
-        },
-        {
-            Id:           2,
-            Original_url: "https://example2.com",
-            Short_name:   "test2",
-            Short_url:    "def456",
-        },
-    }
-    mockRepo.On("ListLinks", mock.Anything).
-        Return(expectedLinks, nil)
-    mockRepo.On("ListLinksLimited", mock.Anything, 0, 10).
-        Return(expectedLinks, nil)  
-    app := &handler.App{
-        Ctx:  context.Background(),
-        Repo: mockRepo,
-    }
-    w := httptest.NewRecorder()
-    c, _ := gin.CreateTestContext(w)
-    c.Request = httptest.NewRequest("GET", "/api/links?range=[0,10]", nil)    
-    app.GetLinks(c)  
-    assert.Equal(t, http.StatusOK, w.Code)
-    var links []*dto.LinkResponce
-    err := json.Unmarshal(w.Body.Bytes(), &links)
-    assert.NoError(t, err)
-    assert.Len(t, links, 2)
-    assert.Equal(t, "https://example1.com", links[0].Original_url)
-    assert.Equal(t, "test1", links[0].Short_name)
-    assert.Equal(t, "https://example2.com", links[1].Original_url)
-    assert.Equal(t, "test2", links[1].Short_name)
-    mockRepo.AssertCalled(t, "ListLinks", mock.Anything)
-    mockRepo.AssertCalled(t, "ListLinksLimited", mock.Anything, 0, 10)
-    mockRepo.AssertExpectations(t)
+	mockRepo := &MockRepository{}
+	expectedLinks := []*dto.LinkResponce{
+		{
+			Id:           1,
+			Original_url: "https://example1.com",
+			Short_name:   "test1",
+			Short_url:    "abc123",
+		},
+		{
+			Id:           2,
+			Original_url: "https://example2.com",
+			Short_name:   "test2",
+			Short_url:    "def456",
+		},
+	}
+	mockRepo.On("ListLinks", mock.Anything).
+		Return(expectedLinks, nil)
+	mockRepo.On("ListLinksLimited", mock.Anything, 0, 10).
+		Return(expectedLinks, nil)
+	app := &handler.App{
+		Ctx:  context.Background(),
+		Repo: mockRepo,
+	}
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest("GET", "/api/links?range=[0,10]", nil)
+	app.GetLinks(c)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var links []*dto.LinkResponce
+	err := json.Unmarshal(w.Body.Bytes(), &links)
+	assert.NoError(t, err)
+	assert.Len(t, links, 2)
+	assert.Equal(t, "https://example1.com", links[0].Original_url)
+	assert.Equal(t, "test1", links[0].Short_name)
+	assert.Equal(t, "https://example2.com", links[1].Original_url)
+	assert.Equal(t, "test2", links[1].Short_name)
+	mockRepo.AssertCalled(t, "ListLinks", mock.Anything)
+	mockRepo.AssertCalled(t, "ListLinksLimited", mock.Anything, 0, 10)
+	mockRepo.AssertExpectations(t)
 }
 
 func TestGetLinksLimited_EmptyList(t *testing.T) {
-    mockRepo := &MockRepository{}
-    mockRepo.On("ListLinks", mock.Anything).
-        Return([]*dto.LinkResponce{}, nil)
-    
-    mockRepo.On("ListLinksLimited", mock.Anything, 5, 15).
-        Return([]*dto.LinkResponce{}, nil)
-    app := &handler.App{
-        Ctx:  context.Background(),
-        Repo: mockRepo,
-    }
-    w := httptest.NewRecorder()
-    c, _ := gin.CreateTestContext(w)
-    c.Request = httptest.NewRequest("GET", "/api/links?range=[5,15]", nil)
-    app.GetLinks(c)
-    assert.Equal(t, http.StatusOK, w.Code)
-    var links []*dto.LinkResponce
-    err := json.Unmarshal(w.Body.Bytes(), &links)
-    assert.NoError(t, err)
-    assert.Empty(t, links)
-    mockRepo.AssertCalled(t, "ListLinks", mock.Anything)
-    mockRepo.AssertCalled(t, "ListLinksLimited", mock.Anything, 5, 15)
-    mockRepo.AssertExpectations(t)
+	mockRepo := &MockRepository{}
+	mockRepo.On("ListLinks", mock.Anything).
+		Return([]*dto.LinkResponce{}, nil)
+
+	mockRepo.On("ListLinksLimited", mock.Anything, 5, 15).
+		Return([]*dto.LinkResponce{}, nil)
+	app := &handler.App{
+		Ctx:  context.Background(),
+		Repo: mockRepo,
+	}
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest("GET", "/api/links?range=[5,15]", nil)
+	app.GetLinks(c)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var links []*dto.LinkResponce
+	err := json.Unmarshal(w.Body.Bytes(), &links)
+	assert.NoError(t, err)
+	assert.Empty(t, links)
+	mockRepo.AssertCalled(t, "ListLinks", mock.Anything)
+	mockRepo.AssertCalled(t, "ListLinksLimited", mock.Anything, 5, 15)
+	mockRepo.AssertExpectations(t)
 }
 func TestRoutes_NoRoute(t *testing.T) {
 	mockRepo := &MockRepository{}
@@ -694,8 +702,3 @@ func TestNoRoute_ReturnsJSON(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, w.Code)
 	assert.Contains(t, w.Body.String(), "Запрашиваемый ресурс не найден")
 }
-
-
-
-
-

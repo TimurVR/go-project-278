@@ -2,16 +2,17 @@ package app
 
 import (
 	"context"
+	"database/sql"
 	"go-project-278/Internal/handler"
 	"go-project-278/Internal/repository"
+
 	"github.com/gin-gonic/gin"
-	"database/sql"
 )
 
 type App struct {
-	Ctx       context.Context
-	Repo      *repository.Repository
-	Handler   *handler.App
+	Ctx     context.Context
+	Repo    *repository.Repository
+	Handler *handler.App
 }
 
 func NewApp(ctx context.Context, dbpool *sql.DB) *App {
@@ -21,13 +22,12 @@ func NewApp(ctx context.Context, dbpool *sql.DB) *App {
 		Repo: repo,
 	}
 	return &App{
-		Ctx:       ctx,
-		Repo:      repo,
-		Handler:   handlerApp,
+		Ctx:     ctx,
+		Repo:    repo,
+		Handler: handlerApp,
 	}
 }
 
 func (a *App) Routes(r *gin.Engine) {
 	a.Handler.Routes(r)
 }
-

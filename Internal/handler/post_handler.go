@@ -103,13 +103,15 @@ func GenerateShortCode(url string) string {
 
 func (a *App) Routes(r *gin.Engine) {
 	r.GET("/r/:code", a.Redirect)
-	r.POST("/api/links", a.CreateLinks)
-	r.GET("/api/links", a.GetLinks)
-	r.GET("/api/links/:id", a.HandleLink)
-	r.PUT("/api/links/:id", a.HandleLink)
-	r.DELETE("/api/links/:id", a.HandleLink)
-	r.GET("/api/link_visits", a.GetVisits)
-
+	api := r.Group("/api")
+	{
+		api.GET("/links", a.GetLinks)
+		api.POST("/links", a.CreateLinks)
+		api.GET("/links/:id", a.HandleLink)
+		api.PUT("/links/:id", a.HandleLink)
+		api.DELETE("/links/:id", a.HandleLink)
+		api.GET("/link_visits", a.GetVisits)
+	}
 	r.NoRoute(func(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error":   "404 Not Found",
