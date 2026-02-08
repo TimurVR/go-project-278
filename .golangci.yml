@@ -1,11 +1,62 @@
-run:
-  timeout: 5m
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+  goconst:
+    min-len: 2
+    min-occurrences: 3
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+  govet:
+    check-shadowing: true
+  nolintlint:
+    require-explanation: true
+    require-specific: true
 
 linters:
+  disable-all: true
   enable:
+    - bodyclose
+    - dogsled
+    - dupl
     - errcheck
+    - exportloopref
+    - goconst
+    - gocritic
+    - godot
+    - gofmt
+    - gofumpt
+    - goimports
+    - gosec
     - gosimple
     - govet
     - ineffassign
+    - misspell
+    - nakedret
+    - noctx
+    - nolintlint
+    - rowserrcheck
+    - sqlclosecheck
     - staticcheck
+    - stylecheck
+    - typecheck
+    - unconvert
+    - unparam
     - unused
+    - whitespace
+
+run:
+  skip-dirs:
+    - vendor
+    - testdata
+  tests: true
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gosec
