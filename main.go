@@ -31,7 +31,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer database.Close()
+	defer func() {
+    	if err := database.Close(); err != nil {
+        	log.Printf("failed to close database: %v", err)
+    	}
+	}()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := database.PingContext(ctx); err != nil {
